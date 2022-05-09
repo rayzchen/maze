@@ -1,11 +1,13 @@
-from .config import BG_COLOR, TREASURE_SIZE, BORDER_COLOR, BORDERS
+from .config import (
+    BG_COLOR, TREASURE_SIZE, TREASURE_COLOR, BORDER_COLOR, BORDERS)
 import pygame
 import pygame.freetype
 import os
 import json
 pygame.freetype.init()
 
-font = pygame.freetype.SysFont("consolas", 15)
+thisdir = os.path.dirname(os.path.abspath(__file__))
+font = pygame.freetype.Font(os.path.join(thisdir, "DejaVuSansMono.ttf"), 15)
 
 class Text:
     def __init__(self, rect, text):
@@ -27,6 +29,10 @@ class Treasure:
         self.rect = pygame.Rect(0, 0, 0, 0)
         self.rect.size = (TREASURE_SIZE, TREASURE_SIZE)
         self.rect.center = pos
+        self.collected = False
+        treasures.append(self)
+
+treasures = []
 
 class Map:
     def __init__(self, rects, texts, color, starts, ends, treasures):
@@ -37,6 +43,7 @@ class Map:
         self.ends = ends
         self.treasures = treasures
         self.number = 0
+        self.triggers = []
 
     def draw(self, surface):
         surface.fill(BG_COLOR)
@@ -44,6 +51,10 @@ class Map:
             pygame.draw.rect(surface, self.color, rect)
             if BORDERS:
                 pygame.draw.rect(surface, BORDER_COLOR, rect, 1)
+
+        for treasure in self.treasures:
+            if not treasure.collected:
+                pygame.draw.rect(surface, TREASURE_COLOR, treasure.rect)
 
         for text in self.texts:
             text_surface, _ = font.render(text.text)
@@ -84,7 +95,6 @@ class Map:
         return Map(rects, texts, color, starts, ends, treasures)
 
 maps = {}
-thisdir = os.path.dirname(os.path.abspath(__file__))
 for file in os.listdir(os.path.join(thisdir, "maps")):
     if file.startswith("map"):
         num = int(file[3:-4])

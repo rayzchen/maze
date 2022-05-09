@@ -1,4 +1,5 @@
 from .config import PLAYER_COLOR, HIT_COLOR
+from .maps import maps
 import pygame
 
 class Player:
@@ -32,7 +33,7 @@ class Player:
                 self.color = PLAYER_COLOR
                 self.pos = map.starts[lastMap].pos
             return
-        
+
         if pressed[pygame.K_LEFT]:
             self.vx -= self.speed
         if pressed[pygame.K_RIGHT]:
@@ -56,3 +57,12 @@ class Player:
 
     def draw(self, surface):
         pygame.draw.rect(surface, self.color, self.rect)
+
+class Map11:
+    @classmethod
+    def onTreasure(cls):
+        # 5->6 becomes 5->7
+        end = list(maps[5].ends.values())[1]
+        end.number = 7
+
+maps[11].triggers.append(Map11)
