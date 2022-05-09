@@ -1,0 +1,16 @@
+START 1 150 125
+START 2 175 290
+END 2 150 300 50 10
+
+COLOR 69 72 255
+RECT 0 0 300 50
+RECT 0 50 50 250
+RECT 250 50 50 250
+RECT 50 200 100 100
+RECT 200 200 50 100
+
+# 5 pixel margins left and right, 15 pixels tall
+# 20 chars fit into a 250 pixel gap
+TEXT 60 60 230 15 "Welcome to The Maze!"
+TEXT 60 75 230 15 "Use the arrow keys"
+TEXT 60 90 230 15 "to move around."

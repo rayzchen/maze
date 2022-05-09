@@ -1,0 +1,17 @@
+START 1 175 10
+START 3 10 225
+END 1 150 0 200 -50
+END 3 -10 200 10 50
+
+COLOR 69 72 255
+RECT 200 0 100 50
+RECT 0 0 150 50
+RECT 0 50 50 150
+RECT 250 50 50 250
+RECT 0 250 250 50
+
+TEXT 60 165 230 15 "This maze is full of"
+TEXT 60 180 230 15 "hidden treasurs that"
+TEXT 60 195 230 15 "you need to collect"
+TEXT 60 210 230 15 "to reach the final"
+TEXT 60 225 230 15 "room."
