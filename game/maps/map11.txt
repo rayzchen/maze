@@ -1,0 +1,29 @@
+# Fake copy of map 6
+
+# Clue:
+# When a choice hath
+# been given, circle
+# do you trace and
+# transition.
+
+START 10 175 290
+END 10 150 300 50 10
+START 3 290 125
+END 3 300 100 10 50
+
+COLOR 252 252 98
+RECT 0 0 300 50
+RECT 0 50 50 250
+RECT 250 50 50 50
+RECT 250 150 50 150
+RECT 50 200 100 100
+RECT 200 200 50 100
+
+TREASURE 125 175
+
+TEXT 60 60 230 15 "Clue 1 solved:"
+TEXT 60 75 230 15 "When a choice hath"
+TEXT 60 90 230 15 "been given, circle"
+TEXT 60 105 230 15 "do you trace and"
+TEXT 60 120 230 15 "transition."
+TEXT 60 135 230 15 "    Go back -->"

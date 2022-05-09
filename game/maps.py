@@ -1,4 +1,4 @@
-from .config import BG_COLOR, TEXT_COLOR, BORDER_COLOR, BORDERS
+from .config import BG_COLOR, TREASURE_SIZE, BORDER_COLOR, BORDERS
 import pygame
 import pygame.freetype
 import os
@@ -22,13 +22,20 @@ class EndRect:
         self.number = number
         self.rect = rect
 
+class Treasure:
+    def __init__(self, pos):
+        self.rect = pygame.Rect(0, 0, 0, 0)
+        self.rect.size = (TREASURE_SIZE, TREASURE_SIZE)
+        self.rect.center = pos
+
 class Map:
-    def __init__(self, rects, texts, color, starts, ends):
+    def __init__(self, rects, texts, color, starts, ends, treasures):
         self.rects = rects
         self.texts = texts
         self.color = color
         self.starts = starts
         self.ends = ends
+        self.treasures = treasures
         self.number = 0
 
     def draw(self, surface):
@@ -49,6 +56,7 @@ class Map:
         color = ()
         starts = {}
         ends = {}
+        treasures = []
         with open(path) as f:
             content = f.read()
         for line in content.rstrip().split("\n"):
@@ -69,8 +77,11 @@ class Map:
                 rect = pygame.Rect(*map(int, parts[1:5]))
                 text = json.loads(" ".join(parts[5:]))
                 texts.append(Text(rect, text))
+            elif parts[0] == "TREASURE":
+                pos = tuple(map(int, parts[1:]))
+                treasures.append(Treasure(pos))
 
-        return Map(rects, texts, color, starts, ends)
+        return Map(rects, texts, color, starts, ends, treasures)
 
 maps = {}
 thisdir = os.path.dirname(os.path.abspath(__file__))
