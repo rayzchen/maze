@@ -1,5 +1,5 @@
 from .config import (
-    BG_COLOR, TREASURE_SIZE, TREASURE_COLOR, BORDER_COLOR, BORDERS)
+    BG_COLOR, TREASURE_SIZE, TREASURE_COLOR, BORDER_COLOR, DEBUG)
 import pygame
 import pygame.freetype
 import os
@@ -34,6 +34,25 @@ class Treasure:
 
 treasures = []
 
+class Triggers:
+    def __init__(self, map):
+        self.classes = []
+        self.map = map
+
+    def add(self, cls):
+        self.classes.append(cls)
+
+    def remove(self, cls):
+        self.classes.remove(cls)
+
+    def trigger(self, event):
+        if DEBUG:
+            print(f"Event triggered on map {self.map.number}: {event!r}")
+        for cls in self.classes:
+            if hasattr(cls, event):
+                print(f"    Event triggered: {cls.__name__}.{event}")
+                getattr(cls, event)(self.map.number)
+
 class Map:
     def __init__(self, rects, texts, color, starts, ends, treasures):
         self.rects = rects
@@ -43,13 +62,13 @@ class Map:
         self.ends = ends
         self.treasures = treasures
         self.number = 0
-        self.triggers = []
+        self.triggers = Triggers(self)
 
     def draw(self, surface):
         surface.fill(BG_COLOR)
         for rect in self.rects:
             pygame.draw.rect(surface, self.color, rect)
-            if BORDERS:
+            if DEBUG:
                 pygame.draw.rect(surface, BORDER_COLOR, rect, 1)
 
         for treasure in self.treasures:

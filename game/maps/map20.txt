@@ -1,0 +1,14 @@
+START 15 290 75
+END 15 300 50 10 50
+START 21 10 75
+END 21 -10 50 10 50
+
+COLOR 62 230 84
+RECT 0 0 300 50
+RECT 0 100 300 200
+
+TEXT 60 160 230 15 "Clue 1:"
+TEXT 60 175 230 15 "When a choice hath"
+TEXT 60 190 230 15 "been given, circle"
+TEXT 60 205 230 15 "do you trace and"
+TEXT 60 220 230 15 "transition."

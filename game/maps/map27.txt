@@ -1,0 +1,26 @@
+# Clue 2:
+# The jest of an
+# instrument may bring
+# shame, though paths
+# alternate shall lead
+# you to fame.
+
+START 26 125 10
+END 26 100 -10 50 10
+
+COLOR 62 230 84
+RECT 0 0 100 100
+RECT 150 0 150 100
+RECT 0 100 50 200
+RECT 250 100 50 200
+RECT 50 250 200 50
+
+TEXT 60 145 230 15 "Clue 2 solved:"
+TEXT 60 160 230 15 "The jest of an"
+TEXT 60 175 230 15 "instrument may bring"
+TEXT 60 190 230 15 "shame, though paths"
+TEXT 60 205 230 15 "alternate shall lead"
+TEXT 60 220 230 15 "you to fame."
+TEXT 60 235 230 15 "    Go back ^^^"
+
+TREASURE 75 125

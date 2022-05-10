@@ -1,5 +1,16 @@
 START 12 225 10
 END 12 200 -10 50 10
+START 18 175 290
+END 18 150 300 50 10
+START 19 10 175
+END 19 -10 150 10 50
+
+# Clue 2:
+# The jest of an
+# instrument may bring
+# shame, though paths
+# alternate shall lead
+# you to fame.
 
 COLOR 62 230 84
 RECT 0 0 200 50

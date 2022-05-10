@@ -1,0 +1,28 @@
+START 21 290 150
+END 21 300 125 10 50
+
+# Clue 3:
+# When death takes
+# thine life 'til thou
+# art but a dead
+# feline, then thou
+# shalt escapeth the
+# unescapable.
+
+COLOR 252 252 98
+RECT 0 0 300 50
+RECT 0 250 300 50
+RECT 0 50 50 200
+RECT 250 50 50 75
+RECT 250 175 50 75
+
+TEXT 60 60 230 15 "Clue 3 solved:"
+TEXT 60 75 230 15 "When death takes"
+TEXT 60 90 230 15 "thine life 'til thou"
+TEXT 60 105 230 15 "art but a dead"
+TEXT 60 120 230 15 "feline, then thou"
+TEXT 60 135 230 15 "shalt escapeth the"
+TEXT 60 150 230 15 "unescapable."
+TEXT 60 165 230 15 "    Go back -->"
+
+TREASURE 75 225
