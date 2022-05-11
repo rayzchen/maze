@@ -12,7 +12,6 @@ addTriggers()
 class Window:
     def __init__(self):
         atexit.register(self.save)
-        self.screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
         self.lastMap = 25
         self.map = 29
         self.player = Player()
@@ -21,6 +20,8 @@ class Window:
         self.load()
 
         maps[self.map].triggers.trigger("onEnter")
+
+        self.screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
 
     def draw(self):
         maps[self.map].draw(self.screen)
@@ -84,7 +85,3 @@ class Window:
         with open("save.txt") as f:
             data = json.loads(f.read())
         self.player.load(data["player"])
-
-def main():
-    window = Window()
-    window.mainloop()

@@ -1,3 +1,4 @@
+# Constants that theoretically can be changed before start
 SCREEN_SIZE = 300
 BG_COLOR = (127, 127, 127)
 BORDER_COLOR = (0, 255, 0)
