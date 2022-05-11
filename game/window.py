@@ -1,6 +1,6 @@
 import os
 from .config import SCREEN_SIZE
-from .maps import maps
+from .maps import maps, treasures
 from .player import Player
 from .mechanics import addTriggers
 import pygame
@@ -67,8 +67,15 @@ class Window:
     def save(self):
         data = {}
         data["player"] = self.player.save()
+
+        data["window"] = {}
+        data["window"]["lastMap"] = self.lastMap
+        data["window"]["map"] = self.map
+
+        data["treasures"] = [t.collected for t in treasures]
+
         with open("save.txt", "w+") as f:
-            f.write(json.dumps(data))
+            f.write(json.dumps(data, indent=4))
 
     def load(self):
         if not os.path.isfile("save.txt"):
@@ -84,4 +91,13 @@ class Window:
 
         with open("save.txt") as f:
             data = json.loads(f.read())
-        self.player.load(data["player"])
+
+        # Use get in case field doesn't exist
+        self.player.load(data.get("player", {}))
+        self.lastMap = data.get("window", {}).get("lastMap", 1)
+        self.map = data.get("window", {}).get("map", 1)
+
+        sub = [False for _ in treasures]
+        for i in range(len(treasures)):
+            if data.get("treasures", sub)[i]:
+                treasures[i].collected = True

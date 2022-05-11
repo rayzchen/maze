@@ -11,15 +11,19 @@ class Player:
         self.size = 10
         self.color = PLAYER_COLOR
         self.cooldown = 0
+        self.deaths = 0
 
     def save(self):
         data = {}
-        data["x"] = self.x
-        data["y"] = self.y
+        data["x"] = int(self.x)
+        data["y"] = int(self.y)
+        data["deaths"] = self.deaths
+        return data
 
     def load(self, data):
-        self.x = data["x"]
-        self.y = data["y"]
+        self.x = data.get("x", 150)
+        self.y = data.get("y", 150)
+        self.deaths = data.get("deaths", 0)
 
     @property
     def rect(self):
@@ -66,6 +70,7 @@ class Player:
                     self.cooldown = 60
                     self.vx = 0
                     self.vy = 0
+                    self.deaths += 1
                     map.triggers.trigger("onDeath")
                 return True
         return False
