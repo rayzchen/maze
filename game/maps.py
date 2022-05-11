@@ -85,7 +85,7 @@ class Map:
         texts = []
         color = ()
         starts = {}
-        ends = {}
+        ends = []
         treasures = []
         with open(path) as f:
             content = f.read()
@@ -102,7 +102,7 @@ class Map:
                 starts[number] = StartPos(number, *map(int, parts[2:]))
             elif parts[0] == "END":
                 number = int(parts[1])
-                ends[number] = EndRect(number, pygame.Rect(*map(int, parts[2:])))
+                ends.append(EndRect(number, pygame.Rect(*map(int, parts[2:]))))
             elif parts[0] == "TEXT":
                 rect = pygame.Rect(*map(int, parts[1:5]))
                 text = json.loads(" ".join(parts[5:]))

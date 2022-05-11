@@ -12,7 +12,7 @@ RECT 250 50 50 250
 RECT 0 250 250 50
 
 TEXT 60 165 230 15 "This maze is full of"
-TEXT 60 180 230 15 "hidden treasurs that"
-TEXT 60 195 230 15 "you need to collect"
-TEXT 60 210 230 15 "to reach the final"
-TEXT 60 225 230 15 "room."
+TEXT 60 180 230 15 "hidden treasures"
+TEXT 60 195 230 15 "that you need to"
+TEXT 60 210 230 15 "collect to reach the"
+TEXT 60 225 230 15 "final room."

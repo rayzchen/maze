@@ -1,0 +1,16 @@
+START 25 150 150
+
+COLOR 62 230 84
+RECT 0 0 125 300
+RECT 125 175 50 125
+RECT 175 0 125 300
+
+The jest of an instrument may
+bring shame, though paths
+alternate shall lead you to fame.
+
+TEXT 15 200 270 15 "Clue 2:"
+TEXT 15 215 270 15 "The jest of an instrument may"
+TEXT 15 230 270 15 "bring shame, though paths"
+TEXT 15 245 270 15 "alternate shall lead you to"
+TEXT 15 260 270 15 "fame."

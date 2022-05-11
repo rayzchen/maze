@@ -1,16 +1,26 @@
+import os
 from .config import SCREEN_SIZE
 from .maps import maps
-from .mechanics import Player
+from .player import Player
+from .mechanics import addTriggers
 import pygame
+import json
+import atexit
 pygame.init()
+addTriggers()
 
 class Window:
     def __init__(self):
+        atexit.register(self.save)
         self.screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
-        self.lastMap = 1
-        self.map = 1
+        self.lastMap = 25
+        self.map = 29
         self.player = Player()
         self.player.pos = maps[self.map].starts[self.lastMap].pos
+
+        self.load()
+
+        maps[self.map].triggers.trigger("onEnter")
 
     def draw(self):
         maps[self.map].draw(self.screen)
@@ -24,7 +34,7 @@ class Window:
         dead = self.player.checkDeath(maps[self.map])
 
         if not dead:
-            for end in maps[self.map].ends.values():
+            for end in maps[self.map].ends:
                 if self.player.rect.colliderect(end.rect):
                     maps[self.map].triggers.trigger("onExit")
                     self.lastMap = self.map
@@ -52,6 +62,28 @@ class Window:
             pygame.display.flip()
             clock.tick(60)
         pygame.display.quit()
+
+    def save(self):
+        data = {}
+        data["player"] = self.player.save()
+        with open("save.txt", "w+") as f:
+            f.write(json.dumps(data))
+
+    def load(self):
+        if not os.path.isfile("save.txt"):
+            return
+
+        load = ""
+        while load not in ["y", "n"]:
+            load = input("Do you want to load savegame? (y/n) ").lower()
+            if load not in ["y", "n"]:
+                print("That is not a valid option!")
+        if load == "n":
+            return
+
+        with open("save.txt") as f:
+            data = json.loads(f.read())
+        self.player.load(data["player"])
 
 def main():
     window = Window()
