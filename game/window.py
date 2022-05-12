@@ -70,6 +70,8 @@ class Window:
 
     def notify(self):
         print("You won!")
+        self.player.pos = (-10, -10)
+        self.map = 39
         self.player.cooldown = -1
 
     def save(self):
@@ -80,6 +82,8 @@ class Window:
         data["window"]["lastMap"] = self.lastMap
         data["window"]["map"] = self.map
         data["window"]["duration"] = time.time() - self.start
+        if self.map == 39:
+            data["window"]["disable"] = 1
 
         data["treasures"] = [t.collected for t in treasures]
 
@@ -109,6 +113,8 @@ class Window:
         self.lastMap = window.get("lastMap", 1)
         self.map = window.get("map", 1)
         self.start = time.time() - window.get("duration")
+        if "disable" in window:
+            self.player.cooldown = -1
 
         sub = [False for _ in treasures]
         for i in range(len(treasures)):
