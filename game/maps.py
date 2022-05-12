@@ -1,5 +1,6 @@
 from .config import (
     BG_COLOR, TREASURE_SIZE, TREASURE_COLOR, BORDER_COLOR, DEBUG)
+from inspect import signature
 import pygame
 import pygame.freetype
 import os
@@ -58,7 +59,12 @@ class Triggers:
             if hasattr(cls, event):
                 if DEBUG:
                     print(f"    Event triggered: {cls.__name__}.{event}")
-                getattr(cls, event)()
+                func = getattr(cls, event)
+                sig = signature(func)
+                if "mapnum" in sig.parameters:
+                    func(self.map.number)
+                else:
+                    func()
 
 class Map:
     def __init__(self, rects, texts, color, starts, ends, treasures):

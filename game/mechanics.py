@@ -157,7 +157,7 @@ class Map31:
         # Final room
 
         number = 0
-        for treasure in treasures[:4]:
+        for treasure in treasures:
             if treasure.collected:
                 number += 1
 
@@ -170,6 +170,20 @@ class Map31:
     def onTreasure(cls):
         # Finish
         pass
+
+class EnterCounter:
+    maps = []
+    @classmethod
+    def onEnter(cls, mapnum):
+        if mapnum not in cls.maps:
+            cls.maps.append(mapnum)
+
+class Map38:
+    @classmethod
+    def onEnter(cls):
+        # Maps 32, 33, 34, 35, 36, 37
+        if len(EnterCounter.maps) == 6:
+            maps[38].rects.pop(-1)
 
 def addTriggers():
     maps[11].triggers.add(Map11)
@@ -185,3 +199,10 @@ def addTriggers():
     maps[28].triggers.add(Map28)
     maps[30].triggers.add(Map30)
     maps[31].triggers.add(Map31)
+    maps[32].triggers.add(EnterCounter)
+    maps[33].triggers.add(EnterCounter)
+    maps[34].triggers.add(EnterCounter)
+    maps[35].triggers.add(EnterCounter)
+    maps[36].triggers.add(EnterCounter)
+    maps[37].triggers.add(EnterCounter)
+    maps[38].triggers.add(Map38)
