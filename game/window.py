@@ -58,8 +58,8 @@ class Window:
                 if event.type == pygame.QUIT:
                     done = True
 
-            self.draw()
             self.update()
+            self.draw()
             pygame.display.flip()
             clock.tick(60)
         pygame.display.quit()

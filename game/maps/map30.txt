@@ -6,9 +6,9 @@ COLOR 208 107 255
 RECT 0 0 50 300
 RECT 100 0 200 300
 
-TEXT 110 60 180 15 "Clue 2:"
-TEXT 110 75 180 15 "The jest of an"
-TEXT 110 90 180 15 "instrument may bring"
-TEXT 110 105 180 15 "shame, though paths"
-TEXT 110 120 180 15 "alternate shall lead"
-TEXT 110 135 180 15 "you to fame."
+TEXT 110 60 180 15 "Clue 4:"
+TEXT 110 75 180 15 ""
+TEXT 110 90 180 15 ""
+TEXT 110 105 180 15 ""
+TEXT 110 120 180 15 ""
+TEXT 110 135 180 15 ""
