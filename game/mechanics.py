@@ -1,9 +1,11 @@
-from .maps import maps
+from .maps import maps, treasures
+from .config import DEBUG
 import random
 
 class Map11:
     @classmethod
-    def onTreasure(cls, mapnum):
+    def onTreasure(cls):
+        # Close treasure 1
         # Map 5: 5->6 becomes 5->7
         maps[5].ends[1].number = 7
 
@@ -13,6 +15,10 @@ class Map14:
 
     @classmethod
     def switch(cls, num):
+        if DEBUG:
+            print(f"        Clue 2: change map {num}")
+
+        # Open or close clue 2
         cls.num = num
         # 15->14 becomes 15->26 (or vice versa)
         maps[15].ends[0].number = num
@@ -21,32 +27,43 @@ class Map14:
         maps[13].ends[1].number = num
 
 class Map18:
-    enabled = False
+    activated = False
 
     @classmethod
-    def onEnter(cls, mapnum):
-        if cls.enabled:
+    def onEnter(cls):
+
+        # Open clue 2
+        if cls.activated:
             Map14.counters.append("L")
             if (Map14.counters[-5:] == ["L", "R", "L", "R", "L"] and
                     Map14.num == 14 and
                     not maps[27].treasures[0].collected):
                 Map14.switch(26)
+                if DEBUG:
+                    print(f"        Clue 2: open")
 
 class Map19:
-    enabled = False
+    activated = False
 
     @classmethod
-    def onEnter(cls, mapnum):
-        if cls.enabled:
+    def onEnter(cls):
+        # Open clue 2
+        if cls.activated:
             Map14.counters.append("R")
             if (Map14.counters[-5:] == ["R", "L", "R", "L", "R"] and
                     Map14.num == 14 and
                     not maps[27].treasures[0].collected):
                 Map14.switch(26)
+                if DEBUG:
+                    print(f"        Clue 2: open")
 
 class Map20:
     @classmethod
-    def onEnter(cls, mapnum):
+    def onEnter(cls):
+        if DEBUG:
+            print(f"        Clue 1: unlock")
+
+        # Open clue 1
         # Map 5: 5->7 becomes 5->6
         if not maps[11].treasures[0].collected:
             maps[5].ends[1].number = 6
@@ -57,7 +74,11 @@ class Map21:
     barrier = maps[21].rects[-1]
 
     @classmethod
-    def onDeath(cls, mapnum):
+    def onDeath(cls):
+        if DEBUG:
+            print(f"        Clue 1: open")
+
+        # Open clue 3
         if cls.activated:
             cls.deaths += 1
 
@@ -65,38 +86,90 @@ class Map21:
                 maps[21].rects.pop(-1)
 
 class Map22:
+    activated = False
     @classmethod
-    def onExit(cls, mapnum):
-        Map21.activated = True
+    def onExit(cls):
+        # Activate clue 3
+        if cls.activated:
+            Map21.activated = True
 
 class Map23:
+    activated = False
     @classmethod
-    def onExit(cls, mapnum):
-        Map21.activated = True
+    def onExit(cls):
+        # Activate clue 3
+        if cls.activated:
+            Map21.activated = True
 
 class Map24:
     @classmethod
-    def onTreasure(cls, mapnum):
+    def onTreasure(cls):
+        if DEBUG:
+            print(f"        Clue 3: close")
+
+        # Close clue 3
         maps[21].rects.append(Map21.barrier)
 
 class Map25:
     number = random.randint(0, 2)
     @classmethod
-    def onEnter(cls, mapnum):
-        print(cls.number)
+    def onEnter(cls):
+        if DEBUG:
+            print(f"        Tunnel: {cls.number}")
+
+        # Random tunnel
         maps[25].ends[cls.number].number = 29
 
 class Map26:
     @classmethod
-    def onLeave(cls, mapnum):
+    def onLeave(cls):
+        if DEBUG:
+            print(f"        Clue 2: close")
+
+        # Close clue 2
         if maps[27].treasures[0].collected:
             Map14.switch(14)
 
-class Map29:
+class Map28:
     @classmethod
-    def onEnter(cls, mapnum):
-        Map18.enabled = True
-        Map19.enabled = True
+    def onEnter(cls):
+        if DEBUG:
+            print(f"        Clue 3: unlock")
+
+        # Activate clue 3
+        Map22.activated = True
+        Map23.activated = True
+
+class Map30:
+    @classmethod
+    def onEnter(cls):
+        if DEBUG:
+            print(f"        Clue 2: unlock")
+
+        # Activate clue 2
+        Map18.activated = True
+        Map19.activated = True
+
+class Map31:
+    parts = maps[31].rects[:-2]
+    @classmethod
+    def onEnter(cls):
+        # Final room
+
+        number = 0
+        for treasure in treasures[:4]:
+            if treasure.collected:
+                number += 1
+
+        if DEBUG:
+            print(f"        Final room: {number} treasures")
+
+        if number == 4:
+            maps[31].rects = maps[31].rects[:-2]
+
+    def onTreasure(cls):
+        # Finish
+        pass
 
 def addTriggers():
     maps[11].triggers.add(Map11)
@@ -109,4 +182,6 @@ def addTriggers():
     maps[24].triggers.add(Map24)
     maps[25].triggers.add(Map25)
     maps[26].triggers.add(Map26)
-    maps[29].triggers.add(Map29)
+    maps[28].triggers.add(Map28)
+    maps[30].triggers.add(Map30)
+    maps[31].triggers.add(Map31)

@@ -58,7 +58,7 @@ class Triggers:
             if hasattr(cls, event):
                 if DEBUG:
                     print(f"    Event triggered: {cls.__name__}.{event}")
-                getattr(cls, event)(self.map.number)
+                getattr(cls, event)()
 
 class Map:
     def __init__(self, rects, texts, color, starts, ends, treasures):

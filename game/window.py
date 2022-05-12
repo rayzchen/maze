@@ -1,4 +1,5 @@
 import os
+import time
 from .config import SCREEN_SIZE
 from .maps import maps, treasures
 from .player import Player
@@ -12,8 +13,8 @@ addTriggers()
 class Window:
     def __init__(self):
         atexit.register(self.save)
-        self.lastMap = 25
-        self.map = 29
+        self.lastMap = 1
+        self.map = 1
         self.player = Player()
         self.player.pos = maps[self.map].starts[self.lastMap].pos
 
@@ -71,6 +72,7 @@ class Window:
         data["window"] = {}
         data["window"]["lastMap"] = self.lastMap
         data["window"]["map"] = self.map
+        data["window"]["duration"] = time.time() - self.start
 
         data["treasures"] = [t.collected for t in treasures]
 
@@ -79,6 +81,7 @@ class Window:
 
     def load(self):
         if not os.path.isfile("save.txt"):
+            self.start = time.time()
             return
 
         load = ""
@@ -87,15 +90,18 @@ class Window:
             if load not in ["y", "n"]:
                 print("That is not a valid option!")
         if load == "n":
+            self.start = time.time()
             return
 
         with open("save.txt") as f:
             data = json.loads(f.read())
 
         # Use get in case field doesn't exist
+        window = data.get("window", {})
         self.player.load(data.get("player", {}))
-        self.lastMap = data.get("window", {}).get("lastMap", 1)
-        self.map = data.get("window", {}).get("map", 1)
+        self.lastMap = window.get("lastMap", 1)
+        self.map = window.get("map", 1)
+        self.start = time.time() - window.get("duration")
 
         sub = [False for _ in treasures]
         for i in range(len(treasures)):
