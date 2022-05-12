@@ -2,6 +2,9 @@ from .maps import maps, treasures
 from .config import DEBUG
 import random
 
+class EndGame(Exception):
+    pass
+
 class Map11:
     @classmethod
     def onTreasure(cls):
@@ -167,9 +170,10 @@ class Map31:
         if number == 4:
             maps[31].rects = maps[31].rects[:-2]
 
+    @classmethod
     def onTreasure(cls):
         # Finish
-        pass
+        raise EndGame
 
 class EnterCounter:
     maps = []

@@ -41,7 +41,7 @@ class Player:
         self.x, self.y = value
 
     def update(self, pressed, map, lastMap):
-        if self.cooldown > 0:
+        if self.cooldown != 0:
             self.cooldown -= 1
             if self.cooldown == 0:
                 self.color = PLAYER_COLOR

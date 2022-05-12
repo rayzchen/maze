@@ -3,7 +3,7 @@ import time
 from .config import SCREEN_SIZE
 from .maps import maps, treasures
 from .player import Player
-from .mechanics import addTriggers
+from .mechanics import addTriggers, EndGame
 import pygame
 import json
 import atexit
@@ -59,11 +59,18 @@ class Window:
                 if event.type == pygame.QUIT:
                     done = True
 
-            self.update()
+            try:
+                self.update()
+            except EndGame:
+                self.notify()
             self.draw()
             pygame.display.flip()
             clock.tick(60)
         pygame.display.quit()
+
+    def notify(self):
+        print("You won!")
+        self.player.cooldown = -1
 
     def save(self):
         data = {}
