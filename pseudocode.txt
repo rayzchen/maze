@@ -1,0 +1,668 @@
+IMPORT os
+IMPORT time
+IMPORT json
+IMPORT random
+IMPORT atexit
+IMPORT pygame
+IMPORT pygame.freetype
+IMPORT signature FROM inspect
+# Init freetype module
+pygame.freetype.init()
+pygame.init()
+
+# Constants that theoretically can be changed before start
+SCREEN_SIZE ← 300
+BG_COLOR ← (127, 127, 127)
+BORDER_COLOR ← (0, 255, 0)
+DEBUG ← False
+TEXT_COLOR ← (0, 0, 0)
+PLAYER_COLOR ← (255, 255, 255)
+HIT_COLOR ← (255, 0, 0)
+TREASURE_SIZE ← 30
+TREASURE_COLOR ← (255, 127, 0)
+
+thisdir ← os.path.dirname(os.path.abspath(__file__))
+font ← pygame.freetype.Font(os.path.join(thisdir, "DejaVuSansMono.ttf"), 15)
+
+CLASS Text
+    FUNCTION __init__(self, rect, text)
+        self.rect ← rect
+        self.text ← text
+    ENDFUNCTION
+ENDCLASS
+
+CLASS StartPos
+    FUNCTION __init__(self, number, x, y)
+        self.number ← number
+        self.pos ← (x, y)
+    ENDFUNCTION
+ENDCLASS
+
+CLASS EndRect
+    FUNCTION __init__(self, number, rect)
+        self.number ← number
+        self.rect ← rect
+    ENDFUNCTION
+ENDCLASS
+
+CLASS Treasure:
+    FUNCTION __init__(self, pos)
+        # Blank rect then set size and pos
+        self.rect ← pygame.Rect(0, 0, 0, 0)
+        self.rect.size ← (TREASURE_SIZE, TREASURE_SIZE)
+        self.rect.center ← pos
+        self.collected ← FALSE
+        treasures.append(self)
+    ENDFUNCTION
+ENDCLASS
+
+treasures ← []
+
+CLASS Triggers:
+    FUNCTION __init__(self, map):
+        # Event handlers for entering, exiting, dying etc
+        self.classes ← []
+        self.map ← map
+    ENDFUNCTION
+
+    FUNCTION add(self, cls)
+        APPEND(self.classes, cls)
+    ENDFUNCTION
+
+    FUNCTION remove(self, cls)
+        REMOVE(self.classes, cls)
+    ENDFUNCTION
+
+    FUNCTION trigger(self, event)
+        IF DEBUG THEN
+            OUTPUT "Event triggered on map " + self.map.number + ": " + event
+        ENDIF
+        FOR cls IN self.classes DO
+            IF HASATTR(cls, event) THEN
+                IF DEBUG THEN
+                    OUTPUT "    Event triggered: " + cls.__name__ + "." + event
+                func ← GETATTR(cls, event)
+                sig ← signature(func)
+                IF "mapnum" IN sig.parameters THEN
+                    func(self.map.number)
+                ELSE
+                    func()
+                ENDIF
+            ENDIF
+    ENDFUNCTION
+ENDCLASS
+
+CLASS Map
+    FUNCTION __init__(self, rects, texts, color, starts, ends, treasures)
+        self.rects ← rects
+        self.texts ← texts
+        self.color ← color
+        self.starts ← starts
+        self.ends ← ends
+        self.treasures ← treasures
+        self.number ← 0
+        self.triggers ← Triggers(self)
+    ENDFUNCTION
+
+    FUNCTION draw(self, surface)
+        # Draw map to screen
+        surface.fill(BG_COLOR)
+
+        # Rect at bottom
+        FOR rect IN self.rects DO
+            pygame.draw.rect(surface, self.color, rect)
+            IF DEBUG DO
+                # Borders on rects
+                pygame.draw.rect(surface, BORDER_COLOR, rect, 1)
+            ENDIF
+        ENDFOR
+
+        # Treasure above rect
+        FOR treasure IN self.treasures DO
+            IF NOT treasure.collected THEN
+                pygame.draw.rect(surface, TREASURE_COLOR, treasure.rect)
+            ENDIF
+        ENDFOR
+
+        # Text on top of everything
+        FOR text in self.texts DO
+            text_surface, _ ← font.render(text.text)
+            surface.blit(text_surface, text.rect.topleft)
+        ENDFOR
+    ENDFUNCTION
+
+    STATIC FUNCTION from_file(path)
+        # Load map from file
+        rects ← []
+        texts ← []
+        color ← ()
+        starts ← {}
+        ends ← []
+        treasures ← []
+        WITH OPEN(path) AS f DO
+            content ← READ(f)
+        ENDWITH
+        FOR line in content.rstrip().split("\n") DO
+            IF line.startswith("#") THEN
+                CONTINUE
+            ENDIF
+            parts ← line.split(" ")
+            IF parts[0] = "RECT" THEN
+                # Syntax: RECT left top width height
+                APPEND(rects, pygame.Rect(*map(int, parts[1:])))
+            ELSE IF parts[0] = "COLOR" THEN
+                # Syntax: COLOR r g b
+                color ← tuple(map(int, parts[1:]))
+            ELSE IF parts[0] = "START" THEN
+                # Syntax: START mapnum x y
+                number ← int(parts[1])
+                starts[number] ← StartPos(number, *map(int, parts[2:]))
+            ELSE IF parts[0] = "END" THEN
+                # Syntax: END mapnum left top width height
+                number ← int(parts[1])
+                APPEND(ends, EndRect(number, pygame.Rect(*map(int, parts[2:]))))
+            ELSE IF parts[0] = "TEXT" THEN
+                # Syntax: TEXT left top width height text
+                rect ← pygame.Rect(*map(int, parts[1:5]))
+                # Use json to load string
+                text ← json.loads(" ".join(parts[5:]))
+                APPEND(texts, Text(rect, text))
+            ELSE IF parts[0] = "TREASURE" THEN
+                # Syntax: TREASURE x y
+                pos ← tuple(map(int, parts[1:]))
+                APPEND(treasures, Treasure(pos))
+            ENDIF
+
+        RETURN Map(rects, texts, color, starts, ends, treasures)
+    ENDFUNCTION
+ENDCLASS
+
+# Load all maps in game/maps/
+maps ← {}
+FOR file in os.listdir(os.path.join(thisdir, "maps")) DO
+    IF file.startswith("map") THEN
+        num ← int(file[3:-4])
+        maps[num] ← Map.from_file(os.path.join(thisdir, "maps", file))
+        maps[num].number ← num
+    ENDIF
+ENDFOR
+
+CLASS Player:
+    FUNCTION __init__(self):
+        self.x ← 0
+        self.y ← 0
+        self.vx ← 0
+        self.vy ← 0
+        self.speed ← 0.75
+        self.size ← 10
+        self.color ← PLAYER_COLOR
+        self.cooldown ← 0
+        self.deaths ← 0
+    ENDFUNCTION
+
+    FUNCTION save(self)
+        data ← {}
+        data["x"] ← int(self.x)
+        data["y"] ← int(self.y)
+        data["deaths"] ← self.deaths
+        RETURN data
+    ENDFUNCTION
+
+    FUNCTION load(self, data)
+        self.x ← data.get("x", 150)
+        self.y ← data.get("y", 150)
+        self.deaths ← data.get("deaths", 0)
+    ENDFUNCTION
+
+    PROPERTY rect(self)
+        x, y ← int(self.x), int(self.y)
+        RETURN pygame.Rect(
+            x - self.size // 2, y - self.size // 2,
+            self.size, self.size)
+    ENDPROPERTY
+
+    PROPERTY pos(self)
+        RETURN (self.x, self.y)
+    ENDPROPERTY
+
+    PROPERTY SETTER pos(self, value):
+        self.x, self.y ← value
+    ENDPROPERTY
+
+    FUNCTION update(self, pressed, map, lastMap)
+        IF self.cooldown != 0 THEN
+            self.cooldown ← self.cooldown - 1
+            IF self.cooldown = 0 THEN
+                self.color ← PLAYER_COLOR
+                self.pos ← map.starts[lastMap].pos
+            RETURN
+
+        IF pressed[pygame.K_LEFT] OR pressed[pygame.K_a] THEN
+            self.vx ← self.vx - self.speed
+        ENDIF
+        if pressed[pygame.K_RIGHT] OR pressed[pygame.K_d]:
+            self.vx ← self.vx + self.speed
+        ENDIF
+        if pressed[pygame.K_UP] OR pressed[pygame.K_w]:
+            self.vy ← self.vy - self.speed
+        ENDIF
+        if pressed[pygame.K_DOWN] OR pressed[pygame.K_s]:
+            self.vy ← self.vy + self.speed
+        ENDIF
+
+        self.vx ← self.vx * 0.7
+        self.vy ← self.vy * 0.7
+        self.x ← self.x + self.vx
+        self.y ← self.y + self.vy
+    ENDFUNCTION
+
+    FUNCTION checkDeath(self, map)
+        FOR rect in map.rects DO
+            IF self.rect.colliderect(rect) THEN
+                IF self.cooldown = 0 THEN
+                    self.color ← HIT_COLOR
+                    self.cooldown ← 60
+                    self.vx ← 0
+                    self.vy ← 0
+                    self.deaths ← self.deaths + 1
+                    map.triggers.trigger("onDeath")
+                ENDIF
+                RETURN TRUE
+            ENDIF
+        ENDFOR
+        RETURN FALSE
+    ENDFUNCTION
+
+    FUNCTION draw(self, surface)
+        pygame.draw.rect(surface, self.color, self.rect)
+    ENDFUNCTION
+
+CLASS EndGame INHERITS Exception
+ENDCLASS
+
+CLASS Map11
+    CLASSMETHOD onTreasure(cls)
+        # Close treasure 1
+        # Map 5: 5->6 becomes 5->7
+        maps[5].ends[1].number ← 7
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map14
+    counters ← []
+    num ← 14
+
+    CLASSMETHOD switch(cls, num)
+        IF DEBUG THEN
+            OUTPUT "        Clue 2: change map " + num
+        ENDIF
+
+        # Open or close clue 2
+        cls.num ← num
+        # 15->14 becomes 15->26 (or vice versa)
+        maps[15].ends[0].number ← num
+
+        # 13->14 becomes 13->26 (or vice versa)
+        maps[13].ends[1].number ← num
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map18
+    activated ← FALSE
+
+    CLASSMETHOD onEnter(cls)
+        # Open clue 2
+        IF cls.activated THEN
+            Map14.counters.append("L")
+            IF (Map14.counters[-5:] = ["L", "R", "L", "R", "L"] AND
+                    Map14.num = 14 AND
+                    NOT maps[27].treasures[0].collected) THEN
+                Map14.switch(26)
+                IF DEBUG THEN
+                    print(f"        Clue 2: open")
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map19
+    activated ← False
+
+    CLASSMETHOD onEnter(cls)
+        # Open clue 2
+        IF cls.activated THEN
+            Map14.counters.append("R")
+            IF (Map14.counters[-5:] == ["R", "L", "R", "L", "R"] AND
+                    Map14.num == 14 AND
+                     maps[27].treasures[0].collected) THEN
+                Map14.switch(26)
+                IF DEBUG THEN
+                    OUTPUT "        Clue 2: open"
+                ENDIF
+            ENDIF
+        ENDIF
+    ENDCLASSMETHOD
+
+CLASS Map20
+    CLASSMETHOD onEnter(cls)
+        IF DEBUG THEN
+            OUTPUT "        Clue 1: unlock"
+        ENDIF
+
+        # Open clue 1
+        # Map 5: 5->7 becomes 5->6
+        IF NOT maps[11].treasures[0].collected THEN
+            maps[5].ends[1].number ← 6
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map21
+    deaths ← 0
+    activated ← False
+    barrier ← maps[21].rects[-1]
+
+    CLASSMETHOD onDeath(cls)
+        IF DEBUG THEN
+            OUTPUT "        Clue 1: open"
+        ENDIF
+
+        # Open clue 3
+        IF cls.activated THEN
+            cls.deaths ← cls.deaths + 1
+
+            IF cls.deaths = 9 THEN
+                maps[21].rects.pop(-1)
+            ENDIF
+        ENDIF
+    ENDCLASSMETHOD
+ENDLCASS
+
+CLASS Map22
+    activated ← False
+
+    CLASSMETHOD onExit(cls)
+        # Activate clue 3
+        IF cls.activated THEN
+            Map21.activated ← True
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map23
+    activated ← False
+    CLASSMETHOD onExit(cls)
+        # Activate clue 3
+        IF cls.activated THEN
+            Map21.activated ← True
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map24
+    CLASSMETHOD onTreasure(cls)
+        IF DEBUG THEN
+            OUTPUT "        Clue 3: close"
+        ENDIF
+
+        # Close clue 3
+        maps[21].rects.append(Map21.barrier)
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map25
+    number ← random.randint(0, 2)
+    CLASSMETHOD onEnter(cls)
+        IF DEBUG THEN
+            OUTPUT "        Tunnel: " + cls.number
+        ENDIF
+
+        # Random tunnel
+        maps[25].ends[cls.number].number ← 29
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map26
+    CLASSMETHOD onLeave(cls)
+        IF DEBUG THEN
+            OUTPUT "        Clue 2: close"
+        ENDIF
+
+        # Close clue 2
+        IF maps[27].treasures[0].collected THEN
+            Map14.switch(14)
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map28
+    CLASSMETHOD onEnter(cls)
+        IF DEBUG THEN
+            OUTPUT "        Clue 3: unlock"
+        ENDIF
+
+        # Activate clue 3
+        Map22.activated ← TRUE
+        Map23.activated ← TRUE
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map30
+    CLASSMETHOD onEnter(cls)
+        IF DEBUG THEN
+            OUTPUT "        Clue 2: unlock"
+        ENDIF
+
+        # Activate clue 2
+        Map18.activated ← TRUE
+        Map19.activated ← TRUE
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map31
+    parts ← maps[31].rects[:-2]
+    CLASSMETHOD onEnter(cls)
+        # Final room
+
+        number ← 0
+        FOR treasure IN treasures DO
+            IF treasure.collected THEN
+                number ← number + 1
+            ENDIF
+        ENDFOR
+
+        IF DEBUG THEN
+            OUTPUT "        Final room: " + number + " treasures"
+        ENDIF
+
+        IF number = 4 THEN
+            maps[31].rects ← maps[31].rects[:-2]
+        ENDIF
+
+    CLASSMETHOD onTreasure(cls)
+        # Finish
+        RAISE EndGame
+    ENDCLASSMETHOD
+
+CLASS EnterCounter
+    maps ← []
+    CLASSMETHOD onEnter(cls, mapnum)
+        IF mapnum NOT IN cls.maps THEN
+            cls.maps.append(mapnum)
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+CLASS Map38
+    CLASSMETHOD onEnter(cls)
+        # Maps 32, 33, 34, 35, 36, 37
+        IF LENGTH(EnterCounter.maps) = 6 THEN
+            maps[38].rects.pop(-1)
+        ENDIF
+    ENDCLASSMETHOD
+ENDCLASS
+
+maps[11].triggers.add(Map11)
+maps[18].triggers.add(Map18)
+maps[19].triggers.add(Map19)
+maps[20].triggers.add(Map20)
+maps[21].triggers.add(Map21)
+maps[22].triggers.add(Map22)
+maps[23].triggers.add(Map23)
+maps[24].triggers.add(Map24)
+maps[25].triggers.add(Map25)
+maps[26].triggers.add(Map26)
+maps[28].triggers.add(Map28)
+maps[30].triggers.add(Map30)
+maps[31].triggers.add(Map31)
+maps[32].triggers.add(EnterCounter)
+maps[33].triggers.add(EnterCounter)
+maps[34].triggers.add(EnterCounter)
+maps[35].triggers.add(EnterCounter)
+maps[36].triggers.add(EnterCounter)
+maps[37].triggers.add(EnterCounter)
+maps[38].triggers.add(Map38)
+
+CLASS Window
+    FUNCTION __init__(self)
+        atexit.register(self.save)
+        self.lastMap ← 1
+        self.map ← 1
+        self.player ← Player()
+        self.player.pos ← maps[self.map].starts[self.lastMap].pos
+
+        self.load()
+
+        maps[self.map].triggers.trigger("onEnter")
+
+        self.screen ← pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
+    ENDFUNCTION
+
+    FUNCTION draw(self)
+        maps[self.map].draw(self.screen)
+        self.player.draw(self.screen)
+    ENDFUNCTION
+
+    FUNCTION update(self)
+        pygame.display.set_caption(str(self.map))
+
+        pressed ← pygame.key.get_pressed()
+        self.player.update(pressed, maps[self.map], self.lastMap)
+        dead ← self.player.checkDeath(maps[self.map])
+
+        IF NOT dead THEN
+            FOR end IN maps[self.map].ends DO
+                IF self.player.rect.colliderect(end.rect) THEN
+                    maps[self.map].triggers.trigger("onExit")
+                    self.lastMap ← self.map
+                    self.map ← end.number
+                    self.player.pos ← maps[self.map].starts[self.lastMap].pos
+                    maps[self.map].triggers.trigger("onEnter")
+                ENDIF
+            ENDFOR
+
+            FOR treasure IN maps[self.map].treasures THEN
+                IF NOT treasure.collected THEN
+                    IF self.player.rect.colliderect(treasure.rect) THEN
+                        treasure.collected ← TRUE
+                        maps[self.map].triggers.trigger("onTreasure")
+                    ENDIF
+                ENDIF
+            ENDFOR
+        ENDIF
+    ENDFUNCTION
+
+    FUNCTION mainloop(self)
+        done ← FALSE
+        clock ← pygame.time.Clock()
+        WHILE NOT done DO
+            events ← pygame.event.get()
+            FOR event IN events DO
+                IF event.type = pygame.QUIT THEN
+                    done ← TRUE
+                ENDIF
+
+            TRY
+                self.update()
+            EXCEPT EndGame
+                self.notify()
+            ENDTRY
+            self.draw()
+            pygame.display.flip()
+            clock.tick(60)
+        ENDWILE
+        pygame.display.quit()
+    ENDFUNCTION
+
+    FUNCTION notify(self)
+        OUTPUT "You won!"
+        self.player.pos ← (-10, -10)
+        self.map ← 39
+        self.player.cooldown ← -1
+    ENDFUNCTION
+
+    FUNCTION save(self)
+        data ← {}
+        data["player"] ← self.player.save()
+
+        data["window"] ← {}
+        data["window"]["lastMap"] ← self.lastMap
+        data["window"]["map"] ← self.map
+        data["window"]["duration"] ← time.time() - self.start
+        IF self.map = 39 THEN
+            data["window"]["disable"] ← 1
+        ENDIF
+
+        data["treasures"] ← [t.collected for t in treasures]
+
+        WITH open("save.txt", "w+") AS f DO
+            f.write(json.dumps(data, indent=4))
+        ENDWITH
+    ENDFUNCTION
+
+    FUNCTION load(self)
+        IF NOT os.path.isfile("save.txt")
+            self.start ← time.time()
+            RETURN
+        ENDIF
+
+        load ← ""
+        WHILE load NOT IN ["y", "n"] DO
+            load ← LOWER(USERINPUT "Do you want to load savegame? (y/n) ")
+            IF load NOT IN ["y", "n"] THEN
+                OUTPUT "That is not a valid option!"
+            ENDIF
+        ENDWHILE
+        IF load = "n" THEN
+            self.start ← time.time()
+            RETURN
+        ENDIF
+
+        WITH open("save.txt") AS f DO
+            data ← json.loads(f.read())
+        ENDWITH
+
+        # Use get in case field doesn't exist
+        window ← data.get("window", {})
+        self.player.load(data.get("player", {}))
+        self.lastMap ← window.get("lastMap", 1)
+        self.map ← window.get("map", 1)
+        self.start ← time.time() - window.get("duration")
+        IF "disable" IN window THEN
+            self.player.cooldown ← -1
+        ENDIF
+
+        sub ← [False for _ in treasures]
+        FOR i ← 0 TO LENGTH(treasures) DO
+            IF data.get("treasures", sub)[i] THEN
+                treasures[i].collected ← True
+            ENDIF
+        ENDFOR
+    ENDFUNCTION
+ENDCLASS
+
+# Create window
+window ← Window()
+# Start game
+window.mainloop()
